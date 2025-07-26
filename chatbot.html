@@ -5,64 +5,55 @@
   <title>Jackson's RAG Experiment</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    :root{
-      --accent:#667eea;
-      --bg:#f4f6fb;
-      --radius:18px;
-    }
+    :root{--accent:#667eea;--bg:#f4f6fb;--radius:18px}
     *{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%}
     body{
       background:linear-gradient(135deg,var(--accent),#764ba2);
       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-      display:flex;
-      flex-direction:column;
+      display:flex;flex-direction:column;
     }
     h1{
       margin:.5rem .5rem .25rem;
       font-size:clamp(1.4rem,2.5vw,2rem);
-      text-align:center;
-      color:#fff;
-      flex-shrink:0;
+      text-align:center;color:#fff;flex-shrink:0;
     }
     #chatbeesInline{
-      flex:1 1 auto;
-      width:calc(100% - 1rem);
-      margin:0 .5rem .5rem;
-      border:none;
-      border-radius:var(--radius);
+      flex:1 1 auto;width:calc(100% - 1rem);
+      margin:0 .5rem .5rem;border:none;border-radius:var(--radius);
       box-shadow:0 8px 28px rgba(0,0,0,.15);
     }
-
-    /* 🖥️ Web override */
-    @media (min-width: 600px){
-      body{
-        align-items:center;
-        justify-content:center;
-      }
-      h1{
-        position:absolute;
-        top:1rem;
-        left:50%;
-        transform:translateX(-50%);
-        margin:0;
-      }
-      #chatbeesInline{
-        width:92%;
-        max-width:420px;
-        height:78vh;
-        max-height:680px;
-        margin:0;
-      }
+    @media (min-width:600px){
+      body{align-items:center;justify-content:center}
+      h1{position:absolute;top:1rem;left:50%;transform:translateX(-50%);margin:0}
+      #chatbeesInline{width:92%;max-width:420px;height:78vh;max-height:680px;margin:0}
     }
   </style>
 </head>
 <body>
   <h1>🧪 Experiment</h1>
+
+  <!-- Chat widget -->
   <iframe
     id="chatbeesInline"
     src="https://www.chatbees.ai/chatbees_popup.html?aid=MTE5V6AG&collectionName=KnowledgeWealth&logoUrl=https%3A%2F%2Fwww.chatbees.ai%2Fchatbees_logo_favicon_white.svg&brandingName=J.A.C.K.S.O.N&greetingMessage=Hi%21%20I%E2%80%99m%20a%20chatbot%20built%20by%20Jackson%20%E2%80%94%20just%20an%20experiment%20to%20explore%20and%20learn%21&thinkingHint=One%20moment%20please...&messagePlaceholder=Type%20your%20message%20here"
     allow="clipboard-write">
   </iframe>
+
+  <!-- 🔊 Notification sound -->
+  <audio id="botReply" preload="auto">
+    <source src="https://cdn.jsdelivr.net/gh/krsnah/notify@main/ding.mp3" type="audio/mp3">
+  </audio>
+
+  <script>
+    /* Listen for bot replies */
+    const ding = document.getElementById('botReply');
+    window.addEventListener('message', (e) => {
+      if (e.data && e.data.type === 'chatbees-bot-reply') {
+        ding.currentTime = 0;
+        ding.play().catch(()=>{});
+      }
+    });
+  </script>
 </body>
 </html>
