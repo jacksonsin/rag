@@ -2,38 +2,46 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Jackson's RAG ChatBot Experiment</title>
+  <title>Jackson's RAG Experiment</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    html,body{margin:0;height:100%}
+    :root{
+      --accent:#667eea;
+      --bg:#f4f6fb;
+      --radius:18px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
     body{
+      height:100vh;
       display:flex;
-      flex-direction:column;
-      font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-      background:linear-gradient(135deg,#667eea,#764ba2);
-      color:#fff;
+      align-items:center;
+      justify-content:center;
+      background:linear-gradient(135deg,var(--accent),#764ba2);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     }
-    h1{
-      margin:.35rem .5rem .25rem;
-      font-size:clamp(1.4rem,2.5vw,2rem);
-      text-align:center;
-      flex-shrink:0;
+    .card{
+      width:92%;
+      max-width:420px;
+      height:78vh;
+      max-height:680px;
+      background:var(--bg);
+      border-radius:var(--radius);
+      box-shadow:0 8px 28px rgba(0,0,0,.15);
+      overflow:hidden;
     }
-    #chatbeesInline{
-      flex:1 1 0;
-      width:calc(100% - 1rem);        /* 0.5rem left + 0.5rem right */
-      margin:0 .5rem .5rem;
+    .card iframe{
+      width:100%;
+      height:100%;
       border:none;
-      border-radius:8px;
     }
   </style>
 </head>
 <body>
-  <h1>🧪 Experiment</h1>
-  <iframe
-    id="chatbeesInline"
-    src="https://www.chatbees.ai/chatbees_popup.html?aid=MTE5V6AG&collectionName=KnowledgeWealth&logoUrl=https%3A%2F%2Fwww.chatbees.ai%2Fchatbees_logo_favicon_white.svg&brandingName=Chatbees&greetingMessage=Hello%21%20How%20can%20I%20assist%20you%3F&thinkingHint=Bees%20are%20thinking...&messagePlaceholder=Type%20your%20message%20here"
-    allow="clipboard-write">
-  </iframe>
+  <div class="card">
+    <iframe
+      src="https://www.chatbees.ai/chatbees_popup.html?aid=MTE5V6AG&collectionName=KnowledgeWealth&logoUrl=https%3A%2F%2Fwww.chatbees.ai%2Fchatbees_logo_favicon_white.svg&brandingName=Chatbees&greetingMessage=Hi%21%20I%E2%80%99m%20a%20chatbot%20built%20by%20Jackson%20%E2%80%94%20just%20an%20experiment%20to%20explore%20and%20learn%21&thinkingHint=Bees%20are%20thinking...&messagePlaceholder=Type%20your%20message%20here"
+      allow="clipboard-write">
+    </iframe>
+  </div>
 </body>
 </html>
