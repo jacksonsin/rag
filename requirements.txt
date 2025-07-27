@@ -1,7 +1,7 @@
-# ------------- exact, mutually-compatible -------------
-langchain-core==0.2.38          # or latest 0.2.x before 0.3
-langchain==0.2.12               # must match core
-langchain-google-genai==1.0.9   # latest stable as of 27 Jul 2025
+# Compatible versions based on LangChain release notes
+langchain==0.2.12
+langchain-core==0.2.26           # must match langchain
+langchain-google-genai==1.0.9    # stable
 langchain-pinecone==0.1.3
 pinecone-client[grpc]>=3.2.2
 pypdf>=3.17.0
