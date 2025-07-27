@@ -1,39 +1,39 @@
+# streamlit_app.py
 from RAG_ChatBot import ChatBot
 import streamlit as st
-import json
 
+# Instantiate the bot once and cache it
+@st.cache_resource(show_spinner=False)
+def get_bot():
+    return ChatBot()
 
-bot = ChatBot()
-    
+bot = get_bot()
 
-st.title('Toronto Travel Assistant Bot')
+st.title("J.A.C.K.S.O.N")
 
-# Function for generating LLM response
-def generate_response(input):
-    result = bot.rag_chain.invoke(input)
-    return result
+# Initialise chat history
+if "messages" not in st.session_state:
+    st.session_state.messages = [
+        {"role": "assistant", "content": "Hello! I'm J.A.C.K.S.O.N. How can I assist you?"}
+    ]
 
-# Store LLM generated responses
-if "messages" not in st.session_state.keys():
-    st.session_state.messages = [{"role": "assistant", "content": "Hello! I'm TravelBot. How can I assist you with your travel plans today?"}]
+# Render previous messages
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.write(msg["content"])
 
-# Display chat messages
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.write(message["content"])
-
-# User-provided prompt
-if input := st.chat_input():
-    st.session_state.messages.append({"role": "user", "content": input})
+# Accept user input
+user_prompt = st.chat_input("Ask me anything…")
+if user_prompt:
+    # Add user message to history
+    st.session_state.messages.append({"role": "user", "content": user_prompt})
     with st.chat_message("user"):
-        st.write(input)
+        st.write(user_prompt)
 
-# Generate a new response if last message is not from assistant
-if st.session_state.messages[-1]["role"] != "assistant":
+    # Generate assistant response
     with st.chat_message("assistant"):
-        with st.spinner("Getting your answer from mystery stuff.."):
-            response = generate_response(input) 
-            result_text = response["result"]
-            st.write(result_text) 
-    message = {"role": "assistant", "content": response["result"]}
-    st.session_state.messages.append(message)
+        with st.spinner("One moment please…"):
+            # Gemma returns a dict with key "result"
+            answer = bot.rag_chain.run(user_prompt)   # or .invoke(user_prompt)["result"]
+            st.write(answer)
+            st.session_state.messages.append({"role": "assistant", "content": answer})
