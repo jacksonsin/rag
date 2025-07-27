@@ -1,7 +1,6 @@
-# Compatible versions based on LangChain release notes
 langchain==0.2.12
-langchain-core==0.2.26           # must match langchain
-langchain-google-genai==1.0.9    # stable
+langchain-core==0.2.26            
+langchain-google-genai==1.0.9     
 langchain-pinecone==0.1.3
 pinecone-client[grpc]>=3.2.2
 pypdf>=3.17.0
