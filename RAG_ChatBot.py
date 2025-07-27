@@ -4,14 +4,11 @@
 from __future__ import annotations
 import os
 from typing import List
-
+from langchain_google_genai.chat_models import ChatGoogleGenerativeAI
 from langchain.schema import Document
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import CharacterTextSplitter
-from langchain_google_genai import (
-    GoogleGenerativeAIEmbeddings,
-    ChatGoogleGenerativeAI,
-)
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain.prompts import PromptTemplate
 from langchain.chains import RetrievalQA           # <-- keep explicit
 from langchain_pinecone import PineconeVectorStore
