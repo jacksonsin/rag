@@ -27,7 +27,7 @@ load_dotenv()
 
 # ---------- CONFIG ----------
 INDEX_NAME     = "langchain-demo"
-EMBED_MODEL    = "textembedding-gecko@001"    # valid Vertex AI embedding model
+EMBED_MODEL    = "models/embedding-001"
 LLM_MODEL      = "gemma-3-27b-it"              # your Gemini chat model
 DIMENSION      = 768
 CHUNK_SIZE     = 512
