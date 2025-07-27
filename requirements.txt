@@ -1,2 +1,4 @@
-langchain-google-genai>=1.0.5
+langchain-community==0.2.0
 langchain-pinecone>=0.1.2
+pinecone-client[grpc]>=3.2.0
+python-dotenv
