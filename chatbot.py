@@ -1,5 +1,5 @@
 """
-Fine-tuned RAG chatbot: Gemma-3-27-B + Gemini embeddings + Pinecone
+Fine-tuned RAG chatbot: Gemma-3-27B + Gemini embeddings + Pinecone
 """
 from __future__ import annotations
 import os
@@ -11,8 +11,7 @@ from dotenv import load_dotenv
 from langchain.schema import Document
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import CharacterTextSplitter
-from langchain.embeddings import GooglePalmEmbeddings
-from langchain.chat_models import ChatGooglePalm
+from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain_pinecone import PineconeVectorStore
 from langchain.prompts import PromptTemplate
 from langchain.chains import RetrievalQA
@@ -21,12 +20,12 @@ from pinecone import Pinecone, ServerlessSpec
 load_dotenv()
 
 # ---------- CONFIG ----------
-INDEX_NAME     = "langchain-demo"
-EMBED_MODEL    = "models/embedding-001"
-LLM_MODEL      = "gemma-3-27b-it"
-DIMENSION      = 768
-CHUNK_SIZE     = 1000
-CHUNK_OVERLAP  = 200
+INDEX_NAME = "langchain-demo"
+EMBED_MODEL = "models/embedding-001"
+LLM_MODEL = "gemma-3-27b-it"
+DIMENSION = 768
+CHUNK_SIZE = 1000
+CHUNK_OVERLAP = 200
 
 
 @st.cache_resource(show_spinner="Building knowledge base …")
@@ -36,21 +35,17 @@ def _build_chain():
     for pdf in Path("./materials").glob("*.pdf"):
         docs.extend(
             CharacterTextSplitter(
-                chunk_size=CHUNK_SIZE,
-                chunk_overlap=CHUNK_OVERLAP
-            ).split_documents(
-                PyPDFLoader(str(pdf)).load()
-            )
+                chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP
+            ).split_documents(PyPDFLoader(str(pdf)).load())
         )
 
-    embeddings = GooglePalmEmbeddings(
-        model=EMBED_MODEL,
-        google_api_key=os.getenv("GOOGLE_API_KEY"),
+    embeddings = GoogleGenerativeAIEmbeddings(
+        model=EMBED_MODEL, google_api_key=os.getenv("GOOGLE_API_KEY")
     )
 
     pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
     if INDEX_NAME in pc.list_indexes().names():
-        pc.delete_index(INDEX_NAME)  # ⚠️ safe for demo; remove if you need persistence
+        pc.delete_index(INDEX_NAME)  # safe for demo
     pc.create_index(
         name=INDEX_NAME,
         dimension=DIMENSION,
@@ -59,15 +54,14 @@ def _build_chain():
     )
 
     docsearch = PineconeVectorStore.from_documents(
-        docs,
-        embeddings,
-        index_name=INDEX_NAME
+        docs, embeddings, index_name=INDEX_NAME
     )
 
-    llm = ChatGooglePalm(
-        model_name=LLM_MODEL,
+    llm = ChatGoogleGenerativeAI(
+        model=LLM_MODEL,
         google_api_key=os.getenv("GOOGLE_API_KEY"),
         temperature=0,
+        max_output_tokens=1024,
     )
 
     prompt = PromptTemplate(
@@ -121,25 +115,14 @@ if "messages" not in st.session_state:
 
 for msg in st.session_state.messages:
     css = "user-msg" if msg["role"] == "user" else "bot-msg"
-    st.markdown(
-        f'<div class="{css}">{msg["content"]}</div>',
-        unsafe_allow_html=True
-    )
+    st.markdown(f'<div class="{css}">{msg["content"]}</div>', unsafe_allow_html=True)
 
 if prompt := st.chat_input("Ask me anything…"):
     st.session_state.messages.append({"role": "user", "content": prompt})
-    st.markdown(
-        f'<div class="user-msg">{prompt}</div>',
-        unsafe_allow_html=True
-    )
+    st.markdown(f'<div class="user-msg">{prompt}</div>', unsafe_allow_html=True)
 
-    with st.spinner("Thinking…"):
+    with st.spinner("One moment please…"):
         response = _build_chain().invoke(prompt)
-        reply = response["result"].strip()
-        st.session_state.messages.append(
-            {"role": "assistant", "content": reply}
-        )
-        st.markdown(
-            f'<div class="bot-msg">{reply}</div>',
-            unsafe_allow_html=True
-        )
+    reply = response["result"].strip()
+    st.session_state.messages.append({"role": "assistant", "content": reply})
+    st.markdown(f'<div class="bot-msg">{reply}</div>', unsafe_allow_html=True)
