@@ -68,9 +68,12 @@ def _build_chain():
     prompt = PromptTemplate(
         input_variables=["context", "question"],
         template=(
-            "You are a J.A.C.K.S.O.N. Use the context below to answer the user's question. "
-            "If you don't know, say so. Keep it short and concise (≤ 2 sentences).\n\n"
-            "Context: {context}\nQuestion: {question}\nAnswer:"
+            "You are J.A.C.K.S.O.N.  \n"
+            "Answer ONLY with the concise result (≤ 2 sentences).  \n"
+            "Use **bold**, *italics*, bullet lists, or emojis to make it vivid.  \n\n"
+            "Context: {context}  \n"
+            "Question: {question}  \n"
+            "Answer: "
         ),
     )
 
@@ -100,6 +103,6 @@ if prompt := st.chat_input("Ask me anything…"):
 
     with st.chat_message("assistant"):
         with st.spinner("One moment please…"):
-            answer = _build_chain().invoke(prompt)
-            st.write(answer) 
+            raw = _build_chain().invoke(prompt)
+            st.write(raw["result"])   # ← only the sentence
     st.session_state.messages.append({"role": "assistant", "content": answer})
