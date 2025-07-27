@@ -12,7 +12,7 @@ from langchain.schema import Document
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.embeddings import GooglePalmEmbeddings
-from langchain.chat_models import ChatGoogleAI
+from langchain.chat_models import ChatGooglePalm
 from langchain_pinecone import PineconeVectorStore
 from langchain.prompts import PromptTemplate
 from langchain.chains import RetrievalQA
@@ -43,7 +43,6 @@ def _build_chain():
             )
         )
 
-    # use LangChain’s built-in Google embedding
     embeddings = GooglePalmEmbeddings(
         model=EMBED_MODEL,
         google_api_key=os.getenv("GOOGLE_API_KEY"),
@@ -65,12 +64,10 @@ def _build_chain():
         index_name=INDEX_NAME
     )
 
-    # use LangChain’s first-party Google chat model
-    llm = ChatGoogleAI(
-        model=LLM_MODEL,
+    llm = ChatGooglePalm(
+        model_name=LLM_MODEL,
         google_api_key=os.getenv("GOOGLE_API_KEY"),
         temperature=0,
-        max_output_tokens=1024,
     )
 
     prompt = PromptTemplate(
