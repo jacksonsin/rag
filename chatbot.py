@@ -1,3 +1,9 @@
+"""
+Fast RAG chatbot: Gemma-3-27-B + Gemini embeddings + Pinecone
+- Designed for Google AI Studio with ADC authentication
+- Index is built once and reused
+- No re-indexing on every request
+"""
 from __future__ import annotations
 import os
 from pathlib import Path
@@ -20,12 +26,12 @@ from pinecone import Pinecone, ServerlessSpec
 load_dotenv()
 
 # ---------- CONFIG ----------
-EMBED_MODEL  = "models/embedding-001"
-LLM_MODEL    = "gemma-3-27b-it"
-INDEX_NAME   = "langchain-demo"
-DIMENSION    = 768
-CHUNK_SIZE   = 512
-CHUNK_OVERLAP= 50
+EMBED_MODEL   = "models/embedding-001"
+LLM_MODEL     = "gemma-3-27b-it"
+INDEX_NAME    = "langchain-demo"
+DIMENSION     = 768
+CHUNK_SIZE    = 512
+CHUNK_OVERLAP = 50
 
 @st.cache_resource(show_spinner="Loading knowledge base …")
 def _build_chain():
@@ -65,8 +71,8 @@ def _build_chain():
         )
 
     # 2️⃣ Load existing index as a retriever
-    embeddings = GoogleGenerativeAIEmbeddings(
-        model=EMBED_MODEL, google_api_key=os.getenv("GOOGLE_API_KEY")
+    embeddings = GooglePalmEmbeddings(
+        model=EMBED_MODEL
     )
     docsearch = PineconeVectorStore.from_existing_index(
         index_name=INDEX_NAME,
@@ -145,5 +151,4 @@ if prompt := st.chat_input("Ask me anything…"):
     reply = response["result"].strip()
 
     st.session_state.messages.append({"role": "assistant", "content": reply})
-    st.markdown(f'<div class="bot-msg">{reply}</div>', unsafe_allow_html=True)
-```
+    st.markdown(f'<div
