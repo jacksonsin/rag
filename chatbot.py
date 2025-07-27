@@ -13,9 +13,9 @@ import streamlit as st
 from dotenv import load_dotenv
 from langchain.schema import Document
 from langchain_community.document_loaders import PyPDFLoader
+from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain.text_splitter import CharacterTextSplitter
 # Use LangChain first-party Google classes
-from langchain.embeddings import GooglePalmEmbeddings
 from langchain.chat_models import ChatGooglePalm
 from langchain_pinecone import PineconeVectorStore
 from langchain.prompts import PromptTemplate
@@ -53,8 +53,8 @@ def _build_chain():
             )
 
         # Use GooglePalmEmbeddings with ADC (no explicit key)
-        embeddings = GooglePalmEmbeddings(
-            model=EMBED_MODEL
+        embeddings = GoogleGenerativeAIEmbeddings(
+            model=EMBED_MODEL, google_api_key=os.getenv("GOOGLE_API_KEY")
         )
 
         # Create Pinecone index and upsert docs
