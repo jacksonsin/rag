@@ -26,7 +26,7 @@ from pinecone import Pinecone, ServerlessSpec
 load_dotenv()
 
 # ---------- CONFIG ----------
-EMBED_MODEL   = "models/embedding-001"
+EMBED_MODEL   = "embedding-001"
 LLM_MODEL     = "gemma-3-27b-it"
 INDEX_NAME    = "langchain-demo"
 DIMENSION     = 768
