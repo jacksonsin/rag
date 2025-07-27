@@ -141,14 +141,17 @@ for msg in st.session_state.messages:
 
 # Chat input
 if prompt := st.chat_input("Ask me anything…"):
+    # Display user message
     st.session_state.messages.append({"role": "user", "content": prompt})
     html = '<div class="user-msg">{prompt}</div>'.format(prompt=prompt)
     st.markdown(html, unsafe_allow_html=True)
 
+    # Generate assistant response
     with st.spinner("Thinking…"):
-        answer = _build_chain().run(prompt)
-    reply = answer.strip()
+        result = _build_chain().invoke(prompt)
+    reply = result["result"].strip()
 
+    # Display assistant message
     st.session_state.messages.append({"role": "assistant", "content": reply})
     html = '<div class="bot-msg">{reply}</div>'.format(reply=reply)
     st.markdown(html, unsafe_allow_html=True)
