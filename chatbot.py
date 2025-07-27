@@ -96,13 +96,16 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-if prompt := st.chat_input("Ask me anything…"):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.write(prompt)
+    if prompt := st.chat_input("Ask me anything…"):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.write(prompt)
 
-    with st.chat_message("assistant"):
-        with st.spinner("One moment please…"):
-            raw = _build_chain().invoke(prompt)
-            st.write(raw["result"])   # ← only the sentence
+        with st.chat_message("assistant"):
+            with st.spinner("One moment please…"):
+                answer = _build_chain().invoke(prompt)
+                st.write(answer["result"])   # ← only the sentence
+                st.session_state.messages.append(
+                    {"role": "assistant", "content": answer["result"]}
+                )
     st.session_state.messages.append({"role": "assistant", "content": answer["result"]})
