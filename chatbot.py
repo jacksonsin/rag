@@ -40,7 +40,8 @@ def _build_chain():
         )
 
     embeddings = GoogleGenerativeAIEmbeddings(
-        model=EMBED_MODEL, google_api_key=os.getenv("GOOGLE_API_KEY")
+        model="embedding-001",     # ← no leading "models/"
+        google_api_key=os.getenv("GOOGLE_API_KEY")
     )
 
     pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
