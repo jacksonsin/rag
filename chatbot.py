@@ -106,8 +106,8 @@ def _build_chain():
     )
 
 # ---------- STREAMLIT UI ----------
-st.set_page_config(page_title="J.A.C.K.S.O.N RAG", layout="centered")
-st.title("🦾 J.A.C.K.S.O.N RAG Chatbot")
+st.set_page_config(page_title="J.A.C.K.S.O.N", layout="centered")
+st.title("J.A.C.K.S.O.N")
 
 # Chat bubble styling
 st.markdown(
