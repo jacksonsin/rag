@@ -13,20 +13,19 @@ import streamlit as st
 from dotenv import load_dotenv
 from langchain.schema import Document
 from langchain_community.document_loaders import PyPDFLoader
-from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain.text_splitter import CharacterTextSplitter
-# Use LangChain first-party Google classes
-from langchain.chat_models import ChatGooglePalm
+# Use langchain_google_genai for both embeddings and chat
+from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain_pinecone import PineconeVectorStore
 from langchain.prompts import PromptTemplate
 from langchain.chains import RetrievalQA
 from pinecone import Pinecone, ServerlessSpec
 
-# Load environment variables (for PROJECT, LOCATION, Pinecone key)
+# Load environment variables
 load_dotenv()
 
 # ---------- CONFIG ----------
-EMBED_MODEL   = "embedding-001"
+EMBED_MODEL   = "models/embedding-001"
 LLM_MODEL     = "gemma-3-27b-it"
 INDEX_NAME    = "langchain-demo"
 DIMENSION     = 768
@@ -39,25 +38,25 @@ def _build_chain():
     # Initialize Pinecone client
     pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
 
-    # 1️⃣ Create index if missing
+    # 1. Create index if missing
     if INDEX_NAME not in pc.list_indexes().names():
         docs: List[Document] = []
         for pdf in Path("./materials").glob("*.pdf"):
             docs.extend(
                 CharacterTextSplitter(
                     chunk_size=CHUNK_SIZE,
-                    chunk_overlap=CHUNK_OVERLAP
+                    chunk_overlap=CHUNK_OVERLAP,
                 ).split_documents(
                     PyPDFLoader(str(pdf)).load()
                 )
             )
 
-        # Use GooglePalmEmbeddings with ADC (no explicit key)
+        # Use GoogleGenerativeAIEmbeddings with explicit API key
         embeddings = GoogleGenerativeAIEmbeddings(
-            model=EMBED_MODEL, google_api_key=os.getenv("GOOGLE_API_KEY")
+            model=EMBED_MODEL,
+            google_api_key=os.getenv("GOOGLE_API_KEY"),
         )
 
-        # Create Pinecone index and upsert docs
         pc.create_index(
             name=INDEX_NAME,
             dimension=DIMENSION,
@@ -67,24 +66,28 @@ def _build_chain():
         PineconeVectorStore.from_documents(
             docs,
             embeddings,
-            index_name=INDEX_NAME
+            index_name=INDEX_NAME,
         )
 
-    # 2️⃣ Load existing index as a retriever
-    embeddings = GooglePalmEmbeddings(
-        model=EMBED_MODEL
+    # 2. Load existing index
+    embeddings = GoogleGenerativeAIEmbeddings(
+        model=EMBED_MODEL,
+        google_api_key=os.getenv("GOOGLE_API_KEY"),
     )
     docsearch = PineconeVectorStore.from_existing_index(
         index_name=INDEX_NAME,
-        embedding=embeddings
+        embedding=embeddings,
     )
 
-    # Initialize the Gemini chat model via AI Studio
-    llm = ChatGooglePalm(
-        model_name=LLM_MODEL,
-        temperature=0
+    # Initialize the Gemini chat model
+    llm = ChatGoogleGenerativeAI(
+        model=LLM_MODEL,
+        google_api_key=os.getenv("GOOGLE_API_KEY"),
+        temperature=0,
+        max_output_tokens=512,
     )
 
+    # Prompt template
     prompt = PromptTemplate(
         input_variables=["context", "question"],
         template=(
@@ -94,6 +97,7 @@ def _build_chain():
         ),
     )
 
+    # Build RetrievalQA chain
     return RetrievalQA.from_chain_type(
         llm=llm,
         retriever=docsearch.as_retriever(),
@@ -105,7 +109,7 @@ def _build_chain():
 st.set_page_config(page_title="J.A.C.K.S.O.N RAG", layout="centered")
 st.title("🦾 J.A.C.K.S.O.N RAG Chatbot")
 
-# Custom chat-bubble CSS
+# Chat bubble styling
 st.markdown(
     """
     <style>
@@ -116,18 +120,11 @@ st.markdown(
         max-width: 80%;
         line-height: 1.4;
     }
-    .user-msg {
-        background: #d0e6ff;
-        color: #003366;
-        margin-left: auto;
-    }
-    .bot-msg {
-        background: #e8f5e8;
-        color: #004d00;
-    }
+    .user-msg { background: #d0e6ff; color: #003366; margin-left: auto; }
+    .bot-msg  { background: #e8f5e8; color: #004d00; }
     </style>
     """,
-    unsafe_allow_html=True
+    unsafe_allow_html=True,
 )
 
 # Initialize chat history
