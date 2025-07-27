@@ -77,6 +77,9 @@ def _build_chain():
     docsearch = PineconeVectorStore.from_existing_index(
         index_name=INDEX_NAME,
         embedding=embeddings
+    )(
+        index_name=INDEX_NAME,
+        embedding=embeddings
     )
 
     # Initialize the Gemini chat model via AI Studio
@@ -139,16 +142,19 @@ if "messages" not in st.session_state:
 # Render history
 for msg in st.session_state.messages:
     css = "user-msg" if msg["role"] == "user" else "bot-msg"
-    st.markdown(f'<div class="{css}">{msg["content"]}</div>', unsafe_allow_html=True)
+    html = '<div class="{css}">{content}</div>'.format(css=css, content=msg["content"])
+    st.markdown(html, unsafe_allow_html=True)
 
 # Chat input
 if prompt := st.chat_input("Ask me anything…"):
     st.session_state.messages.append({"role": "user", "content": prompt})
-    st.markdown(f'<div class="user-msg">{prompt}</div>', unsafe_allow_html=True)
+    html = '<div class="user-msg">{prompt}</div>'.format(prompt=prompt)
+    st.markdown(html, unsafe_allow_html=True)
 
     with st.spinner("Thinking…"):
         response = _build_chain().invoke(prompt)
     reply = response["result"].strip()
 
     st.session_state.messages.append({"role": "assistant", "content": reply})
-    st.markdown(f'<div
+    html = '<div class="bot-msg">{reply}</div>'.format(reply=reply)
+    st.markdown(html, unsafe_allow_html=True)
