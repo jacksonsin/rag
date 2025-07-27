@@ -1,5 +1,7 @@
 """
-Fine-tuned RAG chatbot: Gemma-3-27B + Gemini embeddings + Pinecone
+Fast RAG chatbot: Gemma-3-27B + Gemini embeddings + Pinecone
+- Index is built once and reused
+- No re-indexing on every request
 """
 from __future__ import annotations
 import os
@@ -21,56 +23,59 @@ load_dotenv()
 
 # ---------- CONFIG ----------
 INDEX_NAME = "langchain-demo"
-EMBED_MODEL = "models/embedding-001"
+EMBED_MODEL = "embedding-001"      # NO "models/" prefix
 LLM_MODEL = "gemma-3-27b-it"
 DIMENSION = 768
-CHUNK_SIZE = 1000
-CHUNK_OVERLAP = 200
+CHUNK_SIZE = 512
+CHUNK_OVERLAP = 50
 
 
-@st.cache_resource(show_spinner="Building knowledge base …")
+@st.cache_resource(show_spinner="Loading knowledge base …")
 def _build_chain():
-    """Load PDFs → embed → store → return QA chain."""
-    docs: List[Document] = []
-    for pdf in Path("./materials").glob("*.pdf"):
-        docs.extend(
-            CharacterTextSplitter(
-                chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP
-            ).split_documents(PyPDFLoader(str(pdf)).load())
+    """Load PDFs ONCE → embed ONCE → return QA chain."""
+    pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+
+    # 1. Build / verify index
+    if INDEX_NAME not in pc.list_indexes().names():
+        docs: List[Document] = []
+        for pdf in Path("./materials").glob("*.pdf"):
+            docs.extend(
+                CharacterTextSplitter(
+                    chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP
+                ).split_documents(PyPDFLoader(str(pdf)).load())
+            )
+
+        embeddings = GoogleGenerativeAIEmbeddings(
+            model=EMBED_MODEL, google_api_key=os.getenv("GOOGLE_API_KEY")
         )
 
+        pc.create_index(
+            name=INDEX_NAME,
+            dimension=DIMENSION,
+            metric="cosine",
+            spec=ServerlessSpec(cloud="aws", region="us-east-1"),
+        )
+
+        PineconeVectorStore.from_documents(docs, embeddings, index_name=INDEX_NAME)
+
+    # 2. Load existing index
     embeddings = GoogleGenerativeAIEmbeddings(
         model=EMBED_MODEL, google_api_key=os.getenv("GOOGLE_API_KEY")
     )
-
-    pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
-    if INDEX_NAME in pc.list_indexes().names():
-        pc.delete_index(INDEX_NAME)  # safe for demo
-    pc.create_index(
-        name=INDEX_NAME,
-        dimension=DIMENSION,
-        metric="cosine",
-        spec=ServerlessSpec(cloud="aws", region="us-east-1"),
-    )
-
-    docsearch = PineconeVectorStore.from_documents(
-        docs, embeddings, index_name=INDEX_NAME
+    docsearch = PineconeVectorStore.from_existing_index(
+        index_name=INDEX_NAME, embedding=embeddings
     )
 
     llm = ChatGoogleGenerativeAI(
         model=LLM_MODEL,
         google_api_key=os.getenv("GOOGLE_API_KEY"),
         temperature=0,
-        max_output_tokens=1024,
+        max_output_tokens=512,
     )
 
     prompt = PromptTemplate(
         input_variables=["context", "question"],
-        template=(
-            "Context: {context}\n\n"
-            "Question: {question}\n\n"
-            "Reply in one short sentence:"
-        ),
+        template="Context: {context}\n\nQuestion: {question}\n\nAnswer in one sentence:",
     )
 
     return RetrievalQA.from_chain_type(
@@ -94,15 +99,8 @@ st.markdown(
         max-width: 80%;
         line-height: 1.4;
     }
-    .user-msg {
-        background: #d0e6ff;
-        color: #003366;
-        margin-left: auto;
-    }
-    .bot-msg {
-        background: #e8f5e8;
-        color: #004d00;
-    }
+    .user-msg { background: #d0e6ff; color: #003366; margin-left: auto; }
+    .bot-msg  { background: #e8f5e8; color: #004d00; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -121,7 +119,7 @@ if prompt := st.chat_input("Ask me anything…"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.markdown(f'<div class="user-msg">{prompt}</div>', unsafe_allow_html=True)
 
-    with st.spinner("One moment please…"):
+    with st.spinner("Thinking…"):
         response = _build_chain().invoke(prompt)
     reply = response["result"].strip()
     st.session_state.messages.append({"role": "assistant", "content": reply})
