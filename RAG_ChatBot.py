@@ -53,7 +53,8 @@ class ChatBot:
         llm = ChatGoogleGenerativeAI(
             model=GEMMA_MODEL,
             google_api_key=os.getenv("GOOGLE_API_KEY"),
-            temperature=0
+            temperature=0,
+            max_output_tokens=1024   # <-- new
         )
 
         prompt = PromptTemplate(
