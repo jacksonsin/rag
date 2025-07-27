@@ -1,11 +1,10 @@
-"""
-Minimal RAG chatbot: Gemma 27 B (Google AI Studio) + Gemini embeddings + Pinecone
-"""
 from __future__ import annotations
 import os
+from pathlib import Path
 from typing import List
 
 import streamlit as st
+from dotenv import load_dotenv
 from langchain.schema import Document
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import CharacterTextSplitter
@@ -14,9 +13,6 @@ from langchain_pinecone import PineconeVectorStore
 from langchain.prompts import PromptTemplate
 from langchain.chains import RetrievalQA
 from pinecone import Pinecone, ServerlessSpec
-from dotenv import load_dotenv
-
-from pathlib import Path
 
 load_dotenv()
 
@@ -30,8 +26,8 @@ DIMENSION   = 768  # must match Gemini embedding size
 def _build_chain():
     # 1. Load **all** PDFs in ./materials/
     pdf_files = Path("./materials").glob("*.pdf")
-    docs = []
     splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    docs: List[Document] = []
 
     for pdf_path in pdf_files:
         loader = PyPDFLoader(str(pdf_path))
@@ -39,7 +35,7 @@ def _build_chain():
 
     embeddings = GoogleGenerativeAIEmbeddings(
         model=EMBED_MODEL,
-        google_api_key=os.getenv("GOOGLE_API_KEY")
+        google_api_key=os.getenv("GOOGLE_API_KEY"),
     )
 
     pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
@@ -62,7 +58,7 @@ def _build_chain():
         model=LLM_MODEL,
         google_api_key=os.getenv("GOOGLE_API_KEY"),
         temperature=0,
-        max_output_tokens=1024
+        max_output_tokens=1024,
     )
 
     prompt = PromptTemplate(
@@ -84,28 +80,34 @@ def _build_chain():
         return_source_documents=False,
     )
 
+
 # ---------- Streamlit UI ----------
 st.title("J.A.C.K.S.O.N")
 
+# Initialize chat history
 if "messages" not in st.session_state:
     st.session_state.messages = [
         {"role": "assistant", "content": "Hello! I'm J.A.C.K.S.O.N. How can I help?"}
     ]
 
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
+# Display prior messages with unique keys
+for idx, msg in enumerate(st.session_state.messages):
+    with st.chat_message(msg["role"], key=f"msg_{idx}"):
         st.write(msg["content"])
 
-    if prompt := st.chat_input("Ask me anything…"):
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.write(prompt)
+# Chat input with its own key
+if prompt := st.chat_input("Ask me anything…", key="user_input"):
+    # Append and display the user's message
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    user_idx = len(st.session_state.messages) - 1
+    with st.chat_message("user", key=f"msg_{user_idx}"):
+        st.write(prompt)
 
-        with st.chat_message("assistant"):
-            with st.spinner("One moment please…"):
-                answer = _build_chain().invoke(prompt)
-                st.write(answer["result"])   # ← only the sentence
-                st.session_state.messages.append(
-                    {"role": "assistant", "content": answer["result"]}
-                )
+    # Generate and display the assistant's reply
+    with st.chat_message("assistant", key=f"msg_{user_idx+1}"):
+        with st.spinner("One moment please…"):
+            answer = _build_chain().invoke(prompt)
+            st.write(answer["result"])
+
+    # Append the assistant's response to history
     st.session_state.messages.append({"role": "assistant", "content": answer["result"]})
