@@ -105,4 +105,4 @@ if prompt := st.chat_input("Ask me anything…"):
         with st.spinner("One moment please…"):
             raw = _build_chain().invoke(prompt)
             st.write(raw["result"])   # ← only the sentence
-    st.session_state.messages.append({"role": "assistant", "content": answer})
+    st.session_state.messages.append({"role": "assistant", "content": answer["result"]})
