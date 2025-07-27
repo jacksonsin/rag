@@ -77,9 +77,6 @@ def _build_chain():
     docsearch = PineconeVectorStore.from_existing_index(
         index_name=INDEX_NAME,
         embedding=embeddings
-    )(
-        index_name=INDEX_NAME,
-        embedding=embeddings
     )
 
     # Initialize the Gemini chat model via AI Studio
@@ -152,8 +149,8 @@ if prompt := st.chat_input("Ask me anything…"):
     st.markdown(html, unsafe_allow_html=True)
 
     with st.spinner("Thinking…"):
-        response = _build_chain().invoke(prompt)
-    reply = response["result"].strip()
+        answer = _build_chain().run(prompt)
+    reply = answer.strip()
 
     st.session_state.messages.append({"role": "assistant", "content": reply})
     html = '<div class="bot-msg">{reply}</div>'.format(reply=reply)
