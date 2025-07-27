@@ -26,7 +26,7 @@ DIMENSION   = 768
 
 @st.cache_resource(show_spinner=False)
 def _build_chain():
-    loader = PyPDFLoader("./materials/torontoTravelAssistant.pdf")
+    loader = PyPDFLoader("./materials/ilide.info-viktor-frankl-man-s-search-for-meaning-pr_24dec9f5b7ce09386be953de1276f631.pdf")
     docs = CharacterTextSplitter(
         chunk_size=1000, chunk_overlap=200
     ).split_documents(loader.load())
