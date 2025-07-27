@@ -16,6 +16,8 @@ from langchain.chains import RetrievalQA
 from pinecone import Pinecone, ServerlessSpec
 from dotenv import load_dotenv
 
+from pathlib import Path
+
 load_dotenv()
 
 # ---------- config ----------
@@ -26,11 +28,14 @@ DIMENSION   = 768  # must match Gemini embedding size
 
 @st.cache_resource(show_spinner=False)
 def _build_chain():
-    """Load PDF → embed (Gemini) → store (Pinecone) → build QA chain."""
-    loader = PyPDFLoader("./materials/ilide.info-viktor-frankl-man-s-search-for-meaning-pr_24dec9f5b7ce09386be953de1276f631.pdf")
-    docs = CharacterTextSplitter(
-        chunk_size=1000, chunk_overlap=200
-    ).split_documents(loader.load())
+    # 1. Load **all** PDFs in ./materials/
+    pdf_files = Path("./materials").glob("*.pdf")
+    docs = []
+    splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+
+    for pdf_path in pdf_files:
+        loader = PyPDFLoader(str(pdf_path))
+        docs.extend(splitter.split_documents(loader.load()))
 
     embeddings = GoogleGenerativeAIEmbeddings(
         model=EMBED_MODEL,
