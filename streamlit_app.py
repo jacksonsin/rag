@@ -28,8 +28,9 @@ if user_prompt:
     # Add user message to history
     st.session_state.messages.append({"role": "user", "content": user_prompt})
     with st.spinner("One moment please…"):
-        answer = bot.rag_chain.run(user_prompt)   # already str
+        answer = bot.rag_chain.run(user_prompt)
         st.write(answer)
+        st.session_state.messages.append({"role": "assistant", "content": answer})
 
     # Generate assistant response
     with st.chat_message("assistant"):
