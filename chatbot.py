@@ -1,3 +1,6 @@
+"""
+Fine-tuned RAG chatbot: Gemma-3-27B + Gemini embeddings + Pinecone
+"""
 from __future__ import annotations
 import os
 from pathlib import Path
@@ -16,33 +19,32 @@ from pinecone import Pinecone, ServerlessSpec
 
 load_dotenv()
 
-# ---------- config ----------
-INDEX_NAME = "langchain-demo"
+# ---------- CONFIG ----------
+INDEX_NAME  = "langchain-demo"
 EMBED_MODEL = "models/embedding-001"
-LLM_MODEL = "gemma-3-27b-it"
-DIMENSION = 768  # must match Gemini embedding size
+LLM_MODEL   = "gemma-3-27b-it"
+DIMENSION   = 768
+CHUNK_SIZE  = 1000
+CHUNK_OVERLAP = 200
 
-@st.cache_resource(show_spinner=False)
+
+@st.cache_resource(show_spinner="Building knowledge base …")
 def _build_chain():
-    # 1. Load **all** PDFs in ./materials/
-    pdf_files = Path("./materials").glob("*.pdf")
-    splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    """Load PDFs → embed → store → return QA chain."""
     docs: List[Document] = []
-
-    for pdf_path in pdf_files:
-        loader = PyPDFLoader(str(pdf_path))
-        docs.extend(splitter.split_documents(loader.load()))
+    for pdf in Path("./materials").glob("*.pdf"):
+        docs.extend(
+            CharacterTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
+            .split_documents(PyPDFLoader(str(pdf)).load())
+        )
 
     embeddings = GoogleGenerativeAIEmbeddings(
-        model=EMBED_MODEL,
-        google_api_key=os.getenv("GOOGLE_API_KEY"),
+        model=EMBED_MODEL, google_api_key=os.getenv("GOOGLE_API_KEY")
     )
 
     pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
-
-    # ---- create or recreate index with correct dimension ----
     if INDEX_NAME in pc.list_indexes().names():
-        pc.delete_index(INDEX_NAME)
+        pc.delete_index(INDEX_NAME)  # ⚠️ safe for demo; remove if you need persistence
     pc.create_index(
         name=INDEX_NAME,
         dimension=DIMENSION,
@@ -64,12 +66,9 @@ def _build_chain():
     prompt = PromptTemplate(
         input_variables=["context", "question"],
         template=(
-            "You are J.A.C.K.S.O.N.  \n"
-            "Answer ONLY with the concise result (≤ 2 sentences).  \n"
-            "Use **bold**, *italics*, bullet lists, or emojis to make it vivid.  \n\n"
-            "Context: {context}  \n"
-            "Question: {question}  \n"
-            "Answer: "
+            "Context: {context}\n\n"
+            "Question: {question}\n\n"
+            "Reply in one short sentence:"
         ),
     )
 
@@ -81,34 +80,48 @@ def _build_chain():
     )
 
 
-# ---------- Streamlit UI ----------
-st.title("J.A.C.K.S.O.N")
+# ---------- STREAMLIT UI ----------
+st.set_page_config(page_title="J.A.C.K.S.O.N", layout="centered")
 
-# Initialize chat history
+st.markdown(
+    """
+    <style>
+    .user-msg, .bot-msg {
+        padding: 0.75rem 1rem;
+        margin: 0.4rem 0;
+        border-radius: 1.2rem;
+        max-width: 80%;
+        line-height: 1.4;
+    }
+    .user-msg {
+        background: #d0e6ff;
+        color: #003366;
+        margin-left: auto;
+    }
+    .bot-msg {
+        background: #e8f5e8;
+        color: #004d00;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 if "messages" not in st.session_state:
     st.session_state.messages = [
         {"role": "assistant", "content": "Hello! I'm J.A.C.K.S.O.N. How can I help?"}
     ]
 
-# Display prior messages
 for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.write(msg["content"])
+    css = "user-msg" if msg["role"] == "user" else "bot-msg"
+    st.markdown(f'<div class="{css}">{msg["content"]}</div>', unsafe_allow_html=True)
 
-# Chat input
-if prompt := st.chat_input("Ask me anything…", key="user_input"):
-    # append & display user message
+if prompt := st.chat_input("Ask me anything…"):
     st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.write(prompt)
+    st.markdown(f'<div class="user-msg">{prompt}</div>', unsafe_allow_html=True)
 
-    # generate & display assistant reply
-    with st.chat_message("assistant"):
-        with st.spinner("One moment please…"):
-            answer = _build_chain().invoke(prompt)
-            st.write(answer["result"])
-
-    # save assistant reply
-    st.session_state.messages.append(
-        {"role": "assistant", "content": answer["result"]}
-    )
+    with st.spinner("Thinking…"):
+        response = _build_chain().invoke(prompt)
+    reply = response["result"].strip()
+    st.session_state.messages.append({"role": "assistant", "content": reply})
+    st.markdown(f'<div class="bot-msg">{reply}</div>', unsafe_allow_html=True)
