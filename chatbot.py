@@ -11,7 +11,8 @@ from dotenv import load_dotenv
 from langchain.schema import Document
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import CharacterTextSplitter
-from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
+from langchain.embeddings import GooglePalmEmbeddings
+from langchain.chat_models import ChatGoogleAI
 from langchain_pinecone import PineconeVectorStore
 from langchain.prompts import PromptTemplate
 from langchain.chains import RetrievalQA
@@ -42,7 +43,8 @@ def _build_chain():
             )
         )
 
-    embeddings = GoogleGenerativeAIEmbeddings(
+    # use LangChain’s built-in Google embedding
+    embeddings = GooglePalmEmbeddings(
         model=EMBED_MODEL,
         google_api_key=os.getenv("GOOGLE_API_KEY"),
     )
@@ -63,7 +65,8 @@ def _build_chain():
         index_name=INDEX_NAME
     )
 
-    llm = ChatGoogleGenerativeAI(
+    # use LangChain’s first-party Google chat model
+    llm = ChatGoogleAI(
         model=LLM_MODEL,
         google_api_key=os.getenv("GOOGLE_API_KEY"),
         temperature=0,
