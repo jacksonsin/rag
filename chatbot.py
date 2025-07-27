@@ -22,10 +22,11 @@ load_dotenv()
 INDEX_NAME  = "langchain-demo"
 EMBED_MODEL = "models/embedding-001"
 LLM_MODEL   = "gemma-3-27b-it"
-DIMENSION   = 768
+DIMENSION   = 768  # must match Gemini embedding size
 
 @st.cache_resource(show_spinner=False)
 def _build_chain():
+    """Load PDF → embed (Gemini) → store (Pinecone) → build QA chain."""
     loader = PyPDFLoader("./materials/ilide.info-viktor-frankl-man-s-search-for-meaning-pr_24dec9f5b7ce09386be953de1276f631.pdf")
     docs = CharacterTextSplitter(
         chunk_size=1000, chunk_overlap=200
@@ -37,13 +38,16 @@ def _build_chain():
     )
 
     pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
-    if INDEX_NAME not in pc.list_indexes().names():
-        pc.create_index(
-            name=INDEX_NAME,
-            dimension=DIMENSION,
-            metric="cosine",
-            spec=ServerlessSpec(cloud="aws", region="us-east-1"),
-        )
+
+    # ---- create or recreate index with correct dimension ----
+    if INDEX_NAME in pc.list_indexes().names():
+        pc.delete_index(INDEX_NAME)
+    pc.create_index(
+        name=INDEX_NAME,
+        dimension=DIMENSION,
+        metric="cosine",
+        spec=ServerlessSpec(cloud="aws", region="us-east-1"),
+    )
 
     docsearch = PineconeVectorStore.from_documents(
         docs, embeddings, index_name=INDEX_NAME
@@ -52,13 +56,14 @@ def _build_chain():
     llm = ChatGoogleGenerativeAI(
         model=LLM_MODEL,
         google_api_key=os.getenv("GOOGLE_API_KEY"),
-        temperature=0
+        temperature=0,
+        max_output_tokens=1024
     )
 
     prompt = PromptTemplate(
         input_variables=["context", "question"],
         template=(
-            "You are a Toronto travel assistant. Use the context below to answer the user's question. "
+            "You are a J.A.C.K.S.O.N. Use the context below to answer the user's question. "
             "If you don't know, say so. Keep it short and concise (≤ 2 sentences).\n\n"
             "Context: {context}\nQuestion: {question}\nAnswer:"
         ),
@@ -90,6 +95,6 @@ if prompt := st.chat_input("Ask me anything…"):
 
     with st.chat_message("assistant"):
         with st.spinner("Thinking…"):
-            answer = _build_chain().run(prompt)
+            answer = _build_chain().invoke(prompt)
             st.write(answer)
     st.session_state.messages.append({"role": "assistant", "content": answer})
