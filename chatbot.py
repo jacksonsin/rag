@@ -22,17 +22,15 @@ from pinecone import Pinecone, ServerlessSpec
 load_dotenv()
 
 # ---------- CONFIG ----------
-INDEX_NAME = "langchain-demo"
-EMBED_MODEL = "embedding-001"      # NO "models/" prefix
-LLM_MODEL = "gemma-3-27b-it"
-DIMENSION = 768
-CHUNK_SIZE = 512
+INDEX_NAME   = "langchain-demo"
+EMBED_MODEL  = "textembedding-gecko@001"   # ← valid Vertex AI embedding model ID
+LLM_MODEL    = "gemma-3-27b-it"
+DIMENSION    = 768
+CHUNK_SIZE   = 512
 CHUNK_OVERLAP = 50
-
 
 @st.cache_resource(show_spinner="Loading knowledge base …")
 def _build_chain():
-    """Load PDFs ONCE → embed ONCE → return QA chain."""
     pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
 
     # 1. Build / verify index
@@ -46,7 +44,8 @@ def _build_chain():
             )
 
         embeddings = GoogleGenerativeAIEmbeddings(
-            model=EMBED_MODEL, google_api_key=os.getenv("GOOGLE_API_KEY")
+            model=EMBED_MODEL,
+            google_api_key=os.getenv("GOOGLE_API_KEY"),
         )
 
         pc.create_index(
@@ -60,10 +59,12 @@ def _build_chain():
 
     # 2. Load existing index
     embeddings = GoogleGenerativeAIEmbeddings(
-        model=EMBED_MODEL, google_api_key=os.getenv("GOOGLE_API_KEY")
+        model=EMBED_MODEL,
+        google_api_key=os.getenv("GOOGLE_API_KEY"),
     )
     docsearch = PineconeVectorStore.from_existing_index(
-        index_name=INDEX_NAME, embedding=embeddings
+        index_name=INDEX_NAME,
+        embedding=embeddings
     )
 
     llm = ChatGoogleGenerativeAI(
@@ -84,43 +85,3 @@ def _build_chain():
         chain_type_kwargs={"prompt": prompt},
         return_source_documents=False,
     )
-
-
-# ---------- STREAMLIT UI ----------
-st.set_page_config(page_title="J.A.C.K.S.O.N", layout="centered")
-
-st.markdown(
-    """
-    <style>
-    .user-msg, .bot-msg {
-        padding: 0.75rem 1rem;
-        margin: 0.4rem 0;
-        border-radius: 1.2rem;
-        max-width: 80%;
-        line-height: 1.4;
-    }
-    .user-msg { background: #d0e6ff; color: #003366; margin-left: auto; }
-    .bot-msg  { background: #e8f5e8; color: #004d00; }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {"role": "assistant", "content": "Hello! I'm J.A.C.K.S.O.N. How can I help?"}
-    ]
-
-for msg in st.session_state.messages:
-    css = "user-msg" if msg["role"] == "user" else "bot-msg"
-    st.markdown(f'<div class="{css}">{msg["content"]}</div>', unsafe_allow_html=True)
-
-if prompt := st.chat_input("Ask me anything…"):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    st.markdown(f'<div class="user-msg">{prompt}</div>', unsafe_allow_html=True)
-
-    with st.spinner("Thinking…"):
-        response = _build_chain().invoke(prompt)
-    reply = response["result"].strip()
-    st.session_state.messages.append({"role": "assistant", "content": reply})
-    st.markdown(f'<div class="bot-msg">{reply}</div>', unsafe_allow_html=True)
