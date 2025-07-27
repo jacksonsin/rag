@@ -99,7 +99,7 @@ if prompt := st.chat_input("Ask me anything…"):
         st.write(prompt)
 
     with st.chat_message("assistant"):
-        with st.spinner("Thinking…"):
+        with st.spinner("One moment please…"):
             answer = _build_chain().invoke(prompt)
-            st.write(answer["result"])
+            st.write(answer) 
     st.session_state.messages.append({"role": "assistant", "content": answer})
