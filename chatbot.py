@@ -1,5 +1,5 @@
 """
-Fast RAG chatbot: Gemma-3-27-B + Gemini embeddings + Pinecone
+Fast RAG chatbot: Gemma-3-27B + Gemini embeddings + Pinecone
 - Index is built once and reused
 - No re-indexing on every request
 """
@@ -22,33 +22,38 @@ from pinecone import Pinecone, ServerlessSpec
 load_dotenv()
 
 # ────────── CONFIG ──────────
-# GCP project & location for embedding model
-PROJECT   = os.getenv("GOOGLE_CLOUD_PROJECT")
-LOCATION  = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+# Make sure to set these env vars before running:
+#   GOOGLE_CLOUD_PROJECT="your-gcp-project-id"
+#   GOOGLE_CLOUD_LOCATION="us-central1"  (or your deployed region)
+PROJECT    = os.getenv("GOOGLE_CLOUD_PROJECT")
+LOCATION   = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
 
-# Fully‑qualified path to your embedding model
-EMBED_MODEL  = f"projects/{PROJECT}/locations/{LOCATION}/models/embedding-001"
-LLM_MODEL    = "gemma-3-27b-it"
-INDEX_NAME   = "langchain-demo"
-DIMENSION    = 768
-CHUNK_SIZE   = 512
-CHUNK_OVERLAP= 50
+# Fully‑qualified embedding model path
+EMBED_MODEL   = f"projects/{PROJECT}/locations/{LOCATION}/models/embedding-001"
+LLM_MODEL     = "gemma-3-27b-it"
+INDEX_NAME    = "langchain-demo"
+DIMENSION     = 768
+CHUNK_SIZE    = 512
+CHUNK_OVERLAP = 50
 
 
 @st.cache_resource(show_spinner="Loading knowledge base …")
 def _build_chain():
-    """Load PDFs ONCE → embed ONCE → return QA chain."""
+    """Load PDFs once → embed once → return a RetrievalQA chain."""
     pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
 
-    # 1️⃣ Build index if missing
+    # 1️⃣ Create index if it doesn't exist
     if INDEX_NAME not in pc.list_indexes().names():
         docs: List[Document] = []
         for pdf in Path("./materials").glob("*.pdf"):
-            chunks = CharacterTextSplitter(
-                chunk_size=CHUNK_SIZE,
-                chunk_overlap=CHUNK_OVERLAP
-            ).split_documents(PyPDFLoader(str(pdf)).load())
-            docs.extend(chunks)
+            docs.extend(
+                CharacterTextSplitter(
+                    chunk_size=CHUNK_SIZE,
+                    chunk_overlap=CHUNK_OVERLAP
+                ).split_documents(
+                    PyPDFLoader(str(pdf)).load()
+                )
+            )
 
         embeddings = GoogleGenerativeAIEmbeddings(
             model=EMBED_MODEL,
@@ -61,16 +66,20 @@ def _build_chain():
             metric="cosine",
             spec=ServerlessSpec(cloud="aws", region="us-east-1"),
         )
-        PineconeVectorStore.from_documents(docs, embeddings, index_name=INDEX_NAME)
+        PineconeVectorStore.from_documents(
+            docs,
+            embeddings,
+            index_name=INDEX_NAME
+        )
 
-    # 2️⃣ Load existing index as retriever
+    # 2️⃣ Load the existing index as a retriever
     embeddings = GoogleGenerativeAIEmbeddings(
         model=EMBED_MODEL,
         google_api_key=os.getenv("GOOGLE_API_KEY"),
     )
     docsearch = PineconeVectorStore.from_existing_index(
         index_name=INDEX_NAME,
-        embedding=embeddings,
+        embedding=embeddings
     )
 
     llm = ChatGoogleGenerativeAI(
@@ -101,7 +110,7 @@ def _build_chain():
 st.set_page_config(page_title="J.A.C.K.S.O.N RAG", layout="centered")
 st.title("🦾 J.A.C.K.S.O.N RAG Chatbot")
 
-# custom chat bubble CSS
+# Custom chat-bubble CSS
 st.markdown("""
 <style>
 .user-msg, .bot-msg {
@@ -123,22 +132,24 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# initialize chat history
+# Initialize chat history
 if "messages" not in st.session_state:
     st.session_state.messages = [
         {"role": "assistant", "content": "Hello! I'm J.A.C.K.S.O.N. How can I help?"}
     ]
 
-# render chat history
+# Render chat history
 for msg in st.session_state.messages:
     css = "user-msg" if msg["role"] == "user" else "bot-msg"
     st.markdown(f'<div class="{css}">{msg["content"]}</div>', unsafe_allow_html=True)
 
-# user input
+# Chat input
 if prompt := st.chat_input("Ask me anything…"):
+    # Display user message
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.markdown(f'<div class="user-msg">{prompt}</div>', unsafe_allow_html=True)
 
+    # Get and display assistant reply
     with st.spinner("Thinking…"):
         response = _build_chain().invoke(prompt)
     reply = response["result"].strip()
