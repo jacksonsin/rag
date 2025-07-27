@@ -120,7 +120,7 @@ if prompt := st.chat_input("Ask me anything…"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.markdown(f'<div class="user-msg">{prompt}</div>', unsafe_allow_html=True)
 
-    with st.spinner("Thinking…"):
+    with st.spinner("One moment please…"):
         response = _build_chain().invoke(prompt)
     reply = response["result"].strip()
     st.session_state.messages.append({"role": "assistant", "content": reply})
