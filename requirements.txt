@@ -1,12 +1,6 @@
-# embeddings & LLM via Google AI Studio
-langchain-google-genai>=1.0.5
-
-# vector store
+# ------------- requirements.txt -------------
+langchain-google-genai>=1.0.5   # <-- must be listed
 langchain-pinecone>=0.1.2
 pinecone-client[grpc]>=3.2.0
-
-# PDF loader
 pypdf>=3.17.0
-
-# env vars
 python-dotenv
