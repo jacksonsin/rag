@@ -147,7 +147,7 @@ if prompt := st.chat_input("Ask me anything…"):
     st.markdown(html, unsafe_allow_html=True)
 
     # Generate assistant response
-    with st.spinner("Thinking…"):
+    with st.spinner("One moment please…"):
         result = _build_chain().invoke(prompt)
     reply = result["result"].strip()
 
