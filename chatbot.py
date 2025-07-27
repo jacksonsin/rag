@@ -17,10 +17,10 @@ from pinecone import Pinecone, ServerlessSpec
 load_dotenv()
 
 # ---------- config ----------
-INDEX_NAME  = "langchain-demo"
+INDEX_NAME = "langchain-demo"
 EMBED_MODEL = "models/embedding-001"
-LLM_MODEL   = "gemma-3-27b-it"
-DIMENSION   = 768  # must match Gemini embedding size
+LLM_MODEL = "gemma-3-27b-it"
+DIMENSION = 768  # must match Gemini embedding size
 
 @st.cache_resource(show_spinner=False)
 def _build_chain():
@@ -90,24 +90,25 @@ if "messages" not in st.session_state:
         {"role": "assistant", "content": "Hello! I'm J.A.C.K.S.O.N. How can I help?"}
     ]
 
-# Display prior messages with unique keys
-for idx, msg in enumerate(st.session_state.messages):
-    with st.chat_message(msg["role"], key=f"msg_{idx}"):
+# Display prior messages
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-# Chat input with its own key
+# Chat input
 if prompt := st.chat_input("Ask me anything…", key="user_input"):
-    # Append and display the user's message
+    # append & display user message
     st.session_state.messages.append({"role": "user", "content": prompt})
-    user_idx = len(st.session_state.messages) - 1
-    with st.chat_message("user", key=f"msg_{user_idx}"):
+    with st.chat_message("user"):
         st.write(prompt)
 
-    # Generate and display the assistant's reply
-    with st.chat_message("assistant", key=f"msg_{user_idx+1}"):
+    # generate & display assistant reply
+    with st.chat_message("assistant"):
         with st.spinner("One moment please…"):
             answer = _build_chain().invoke(prompt)
             st.write(answer["result"])
 
-    # Append the assistant's response to history
-    st.session_state.messages.append({"role": "assistant", "content": answer["result"]})
+    # save assistant reply
+    st.session_state.messages.append(
+        {"role": "assistant", "content": answer["result"]}
+    )
