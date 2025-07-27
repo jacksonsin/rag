@@ -27,8 +27,9 @@ user_prompt = st.chat_input("Ask me anything…")
 if user_prompt:
     # Add user message to history
     st.session_state.messages.append({"role": "user", "content": user_prompt})
-    with st.chat_message("user"):
-        st.write(user_prompt)
+    with st.spinner("One moment please…"):
+        answer = bot.rag_chain.run(user_prompt)   # already str
+        st.write(answer)
 
     # Generate assistant response
     with st.chat_message("assistant"):
