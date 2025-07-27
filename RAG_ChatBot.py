@@ -1,5 +1,6 @@
 """
 RAG chatbot with Gemma (via Ollama) + Pinecone
+Loads a PDF instead of a text file
 """
 from __future__ import annotations
 
@@ -7,7 +8,7 @@ import os
 from typing import List
 
 from langchain.schema import Document
-from langchain.document_loaders import TextLoader
+from langchain_community.document_loaders import PyPDFLoader   # PDF loader
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.embeddings import OllamaEmbeddings
 from langchain_community.llms import Ollama
@@ -20,16 +21,16 @@ from pinecone import Pinecone, ServerlessSpec
 load_dotenv()
 
 GEMMA_MODEL = "gemma:2b"          # or gemma:7b
-EMBED_MODEL = "nomic-embed-text"  # lightweight local embedding (384-d)
+EMBED_MODEL = "nomic-embed-text"  # 384-d local embedding
 INDEX_NAME  = "langchain-demo"
 
 class ChatBot:
     def __init__(self) -> None:
 
         # ------------------------------------------------------------------
-        # 1. Load & split documents
+        # 1. Load & split PDF
         # ------------------------------------------------------------------
-        loader = TextLoader("./materials/torontoTravelAssistant.txt", encoding="utf-8")
+        loader = PyPDFLoader("./materials/ilide.info-viktor-frankl-man-s-search-for-meaning-pr_24dec9f5b7ce09386be953de1276f631.pdf")  # <-- PDF
         documents: List[Document] = loader.load()
 
         text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
@@ -45,7 +46,7 @@ class ChatBot:
         if INDEX_NAME not in pc.list_indexes().names():
             pc.create_index(
                 name=INDEX_NAME,
-                dimension=384,                # nomic-embed-text dimension
+                dimension=384,
                 metric="cosine",
                 spec=ServerlessSpec(cloud="aws", region="us-east-1"),
             )
